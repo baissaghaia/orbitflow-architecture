@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OrbitFlow QA Platform — Architecture v4.1</title>
+<style>
+  :root {
+    --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+    --card: #1e293b; --border: #334155;
+    --text: #e2e8f0; --text2: #94a3b8; --text3: #64748b;
+    --blue: #3b82f6; --blue2: #1d4ed8; --blue-bg: #172554;
+    --green: #22c55e; --green2: #16a34a; --green-bg: #052e16;
+    --amber: #f59e0b; --amber2: #d97706; --amber-bg: #451a03;
+    --red: #ef4444; --red-bg: #450a0a;
+    --purple: #a78bfa; --purple2: #7c3aed; --purple-bg: #2e1065;
+    --cyan: #22d3ee; --cyan-bg: #083344;
+    --radius: 12px; --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+  .hero { text-align: center; padding: 4rem 2rem 3rem; background: linear-gradient(135deg, var(--blue-bg) 0%, var(--purple-bg) 50%, var(--bg) 100%); border-bottom: 1px solid var(--border); }
+  .hero h1 { font-size: 2.4rem; font-weight: 800; background: linear-gradient(135deg, var(--blue), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.5px; }
+  .hero .version { display: inline-block; margin-top: 0.5rem; padding: 0.3rem 1rem; border-radius: 20px; background: var(--blue-bg); border: 1px solid var(--blue); color: var(--blue); font-size: 0.85rem; font-weight: 600; }
+  .hero p { color: var(--text2); margin-top: 1rem; font-size: 1.05rem; max-width: 700px; margin-left: auto; margin-right: auto; }
+  .section { margin-top: 3rem; }
+  .section-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.6rem; }
+  .section-title .icon { width: 32px; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+  .module-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+  .module-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; transition: border-color 0.2s, transform 0.2s; }
+  .module-card:hover { border-color: var(--blue); transform: translateY(-2px); }
+  .module-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.5rem; }
+  .module-card .layer-tag { font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .module-card ul { list-style: none; margin-top: 0.5rem; }
+  .module-card li { font-size: 0.85rem; color: var(--text2); padding: 2px 0; display: flex; align-items: center; gap: 6px; }
+  .module-card li::before { content: '›'; color: var(--text3); font-weight: 700; }
+  .tag-foundation { background: var(--purple-bg); color: var(--purple); }
+  .tag-domain { background: var(--cyan-bg); color: var(--cyan); }
+  .tag-validation { background: var(--green-bg); color: var(--green); }
+  .tag-output { background: var(--amber-bg); color: var(--amber); }
+  .tag-presentation { background: var(--blue-bg); color: var(--blue); }
+  .tag-orchestration { background: var(--red-bg); color: var(--red); }
+  .tag-live { background: #022c22; color: #34d399; }
+  .dep-table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+  .dep-table th { background: var(--bg3); padding: 0.75rem 1rem; text-align: left; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); }
+  .dep-table td { padding: 0.6rem 1rem; border-top: 1px solid var(--border); font-size: 0.85rem; }
+  .dep-table code { background: var(--bg); padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; color: var(--blue); }
+  .dep-table tr:hover td { background: rgba(59,130,246,0.04); }
+  .pipeline { display: flex; flex-direction: column; gap: 0; position: relative; }
+  .pipeline::before { content: ''; position: absolute; left: 24px; top: 36px; bottom: 36px; width: 2px; background: var(--border); z-index: 0; }
+  .phase { display: flex; gap: 1rem; position: relative; z-index: 1; }
+  .phase-dot { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem; flex-shrink: 0; border: 2px solid; }
+  .phase-body { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1rem; }
+  .phase-body h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .phase-body ul { list-style: none; }
+  .phase-body li { font-size: 0.84rem; color: var(--text2); padding: 2px 0; padding-left: 1rem; position: relative; }
+  .phase-body li::before { content: '•'; position: absolute; left: 0; color: var(--text3); }
+  .path-tabs { display: flex; gap: 0; margin-bottom: 0; }
+  .path-tab { padding: 0.7rem 1.5rem; cursor: pointer; font-size: 0.85rem; font-weight: 600; border: 1px solid var(--border); background: var(--bg2); color: var(--text2); border-radius: var(--radius-sm) var(--radius-sm) 0 0; border-bottom: none; transition: all 0.2s; }
+  .path-tab.active { background: var(--card); color: var(--blue); border-color: var(--blue); border-bottom: 1px solid var(--card); position: relative; z-index: 2; }
+  .path-content { border: 1px solid var(--border); border-radius: 0 var(--radius) var(--radius) var(--radius); padding: 2rem; background: var(--card); position: relative; z-index: 1; margin-top: -1px; display: none; }
+  .path-content.active { display: block; }
+  .score-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+  .score-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+  .score-card h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+  .score-row { display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .score-row:last-child { border-bottom: none; }
+  .score-label { font-size: 0.82rem; color: var(--text2); }
+  .score-weight { font-size: 0.82rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+  .principle-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem; }
+  .principle { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; border-left: 3px solid; }
+  .principle h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+  .principle p { font-size: 0.85rem; color: var(--text2); }
+  .principle ul { list-style: none; margin-top: 0.4rem; }
+  .principle li { font-size: 0.84rem; color: var(--text2); padding: 2px 0; padding-left: 1rem; position: relative; }
+  .principle li::before { content: '→'; position: absolute; left: 0; color: var(--text3); }
+  .ds-banner { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+  .ds-card { flex: 1; min-width: 260px; padding: 1rem 1.25rem; border-radius: var(--radius); border: 1px solid; display: flex; align-items: flex-start; gap: 0.75rem; }
+  .ds-card .ds-icon { font-size: 1.5rem; flex-shrink: 0; margin-top: 2px; }
+  .ds-card h5 { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .ds-card p { font-size: 0.8rem; }
+  .ind-grid { display: grid; grid-template-columns: auto 1fr 2fr; gap: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .ind-grid > div { padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.84rem; display: flex; align-items: center; }
+  .ind-grid > div:nth-child(-n+3) { background: var(--bg3); font-weight: 600; color: var(--text2); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+  .ind-icon { font-size: 1.1rem; justify-content: center; }
+  .footer { text-align: center; padding: 3rem 1rem 2rem; color: var(--text3); font-size: 0.8rem; border-top: 1px solid var(--border); margin-top: 4rem; }
+  .footer strong { color: var(--text2); }
+  .connector { text-align: center; padding: 0.5rem 0; }
+  .connector .arrow { display: inline-block; width: 2px; height: 28px; background: var(--border); position: relative; }
+  .connector .arrow::after { content: '▼'; position: absolute; bottom: -10px; left: -6px; color: var(--text3); font-size: 0.7rem; }
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 1.6rem; }
+    .module-grid, .principle-grid, .score-grid { grid-template-columns: 1fr; }
+    .container { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+<div class="hero">
+  <h1>OrbitFlow QA Platform</h1>
+  <span class="version">Architecture v4.1 — Live API Validation</span>
+  <p>Enterprise modular testing architecture for the Ghaia Orbit-1 RFP Initiation Agent. Arabic-first, governance-driven, with live WebSocket validation against the production agent.</p>
+</div>
+<div class="container">
+<div class="section">
+  <h2 class="section-title"><span class="icon" style="background:var(--blue-bg);color:var(--blue)">⬡</span> Module Architecture</h2>
+  <div class="module-grid">
+    <div class="module-card" style="border-top: 3px solid var(--blue)">
+      <h3>Dashboard <span class="layer-tag tag-presentation">Presentation</span></h3>
+      <ul><li>Express API server (server.cjs)</li><li>SPA with run management</li><li>Report history + data source tags</li><li>Auto-refresh (10s polling)</li><li>Real vs simulated indicators</li></ul>
+    </div>
+    <div class="module-card" style="border-top: 3px solid var(--amber)">
+      <h3>Reporting <span class="layer-tag tag-output">Output</span></h3>
+      <ul><li>Report engine orchestrator</li><li>HTML formatter (RTL Arabic)</li><li>JSON machine-readable output</li><li>Excel spreadsheet export</li><li>Multi-source data collector</li></ul>
+    </div>
+    <div class="module-card" style="border-top: 3px solid var(--green)">
+      <h3>AI Agent Validator <span class="layer-tag tag-validation">Validation</span></h3>
+      <ul><li>Semantic intent analysis</li><li>Hallucination detection</li><li>Procurement contradiction checks</li><li>Arabic/English glossary compliance</li><li>Dual-mode scoring (live/offline)</li><li>Source attribution tagging</li></ul>
+    </div>
+    <div class="module-card" style="border-top: 3px solid var(--green)">
+      <h3>Documents <span class="layer-tag tag-validation">Validation</span></h3>
+      <ul><li>Document structure validation</li><li>Section hierarchy extraction</li><li>Conversation-document alignment</li><li>Per-section content quality</li></ul>
+    </div>
+    <div class="module-card" style="border-top: 3px solid var(--green)">
+      <h3>Governance <span class="layer-tag tag-validation">Validation</span></h3>
+      <ul><li>Governance engine + policy enforcement</li><li>Compliance evaluator (pass/fail)</li><li>PDD procurement rule engine</li><li>Test coverage matrix</li></ul>
+    </div>
+    <div class="module-card" style="border-top: 3px solid var(--cyan)">
+      <h3>Workflow <span class="layer-tag tag-domain">Domain</span></h3>
+      <ul><li>Conversation state machine</li><li>Dynamic flow generator</li><li>5 persona configurations</li><li>Classification engine</li></ul>
+    </div>
+    <div class="module-card" style="border-top: 3px solid var(--purple)">
+      <h3>Shared <span class="layer-tag tag-foundation">Foundation</span></h3>
+      <ul><li>Typed interfaces (all contracts)</li><li>Domain constants + Arabic patterns</li><li>Typed pub/sub event bus</li><li>Lightweight DI registry</li></ul>
+    </div>
+    <div class="module-card" style="border-top: 3px solid var(--red)">
+      <h3>Runtime <span class="layer-tag tag-orchestration">Orchestration</span></h3>
+      <ul><li>Pipeline phase composition</li><li>Session init (REST)</li><li>WebSocket connect</li><li>Event-driven message dispatch</li><li>Response collector + validator</li></ul>
+    </div>
+    <div class="module-card" style="border-top: 3px solid #34d399">
+      <h3>Live API Layer <span class="layer-tag tag-live">Orbit-1</span></h3>
+      <ul><li>conversation-replay-engine.js — WS replay</li><li>flow-runner.cy.js — Phase 0→4 pipeline</li><li>stage0-multi-flow.js — validators</li><li>Real agent response capture</li><li>DOCUMENT_GENERATED detection</li></ul>
+    </div>
+  </div>
+</div>
+<div class="section">
+  <h2 class="section-title"><span class="icon" style="background:var(--purple-bg);color:var(--purple)">◆</span> Layer Dependency</h2>
+  <div style="text-align:center;">
+    <div style="display:inline-flex;flex-direction:column;align-items:center;gap:0;text-align:center">
+      <div style="padding:12px 32px;background:var(--blue-bg);border:1px solid var(--blue);border-radius:var(--radius);color:var(--blue);font-weight:700;font-size:0.9rem">🖥 Dashboard <span style="color:var(--text3);font-weight:400;font-size:0.8rem">Presentation</span></div>
+      <div class="connector"><span class="arrow"></span></div>
+      <div style="padding:12px 32px;background:var(--amber-bg);border:1px solid var(--amber);border-radius:var(--radius);color:var(--amber);font-weight:700;font-size:0.9rem">📊 Reporting <span style="color:var(--text3);font-weight:400;font-size:0.8rem">Output</span></div>
+      <div class="connector"><span class="arrow"></span></div>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;justify-content:center">
+        <div style="padding:12px 20px;background:var(--green-bg);border:1px solid var(--green);border-radius:var(--radius);color:var(--green);font-weight:700;font-size:0.85rem">🤖 AI Agent</div>
+        <div style="padding:12px 20px;background:var(--green-bg);border:1px solid var(--green);border-radius:var(--radius);color:var(--green);font-weight:700;font-size:0.85rem">📄 Documents</div>
+        <div style="padding:12px 20px;background:var(--green-bg);border:1px solid var(--green);border-radius:var(--radius);color:var(--green);font-weight:700;font-size:0.85rem">🛡 Governance</div>
+      </div>
+      <div style="color:var(--text3);font-size:0.75rem;margin-top:4px">Validation Layer</div>
+      <div class="connector"><span class="arrow"></span></div>
+      <div style="padding:12px 32px;background:var(--cyan-bg);border:1px solid var(--cyan);border-radius:var(--radius);color:var(--cyan);font-weight:700;font-size:0.9rem">⚙️ Workflow <span style="color:var(--text3);font-weight:400;font-size:0.8rem">Domain</span></div>
+      <div class="connector"><span class="arrow"></span></div>
+      <div style="padding:12px 32px;background:var(--purple-bg);border:1px solid var(--purple);border-radius:var(--radius);color:var(--purple);font-weight:700;font-size:0.9rem">🧱 Shared <span style="color:var(--text3);font-weight:400;font-size:0.8rem">Foundation</span></div>
+      <div style="margin-top:1.5rem;display:flex;gap:1rem;flex-wrap:wrap;justify-content:center">
+        <div style="padding:12px 20px;background:var(--red-bg);border:1px solid var(--red);border-radius:var(--radius);color:var(--red);font-weight:700;font-size:0.85rem">⚡ Runtime <span style="font-weight:400;font-size:0.75rem">(depends on ALL)</span></div>
+        <div style="padding:12px 20px;background:#022c22;border:1px solid #34d399;border-radius:var(--radius);color:#34d399;font-weight:700;font-size:0.85rem">🔗 Live API Layer <span style="font-weight:400;font-size:0.75rem">(Orbit-1 WS)</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="section">
+  <h2 class="section-title"><span class="icon" style="background:var(--bg3);color:var(--text2)">⊞</span> Import Rules (Strict)</h2>
+  <table class="dep-table">
+    <thead><tr><th>Module</th><th>Can Import From</th></tr></thead>
+    <tbody>
+      <tr><td><code>shared</code></td><td style="color:var(--text3)">Nothing (foundation)</td></tr>
+      <tr><td><code>workflow</code></td><td><code>shared</code></td></tr>
+      <tr><td><code>ai-agent</code></td><td><code>shared</code> <code>workflow</code></td></tr>
+      <tr><td><code>governance</code></td><td><code>shared</code> <code>workflow</code></td></tr>
+      <tr><td><code>documents</code></td><td><code>shared</code> <code>workflow</code></td></tr>
+      <tr><td><code>reporting</code></td><td><code>shared</code> <code>governance</code></td></tr>
+      <tr><td><code>dashboard</code></td><td><code>shared</code> <code>workflow</code></td></tr>
+      <tr><td><code>runtime</code></td><td><code>shared</code> <code>workflow</code> <code>ai-agent</code> <code>governance</code> <code>documents</code> <code>reporting</code></td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:0.75rem;font-size:0.8rem;color:var(--text3)">No circular dependencies. No upward imports. No cross-imports between peer modules at the same layer.</p>
+</div>
+<div class="section">
+  <h2 class="section-title"><span class="icon" style="background:var(--green-bg);color:var(--green)">▶</span> Execution Pipelines</h2>
+  <div class="path-tabs">
+    <div class="path-tab active" onclick="switchPath('a',this)">Path A — Standard Replay</div>
+    <div class="path-tab" onclick="switchPath('b',this)">Path B — AI Flow Runner</div>
+  </div>
+  <div class="path-content active" id="path-a">
+    <p style="color:var(--text2);font-size:0.85rem;margin-bottom:1.5rem">Overview Tab → Run button → <code>conversation-replay.cy.js</code> → Real Orbit-1 WebSocket conversation → Full 19-category validation → Report</p>
+    <div class="pipeline">
+      <div class="phase"><div class="phase-dot" style="background:var(--blue-bg);border-color:var(--blue);color:var(--blue)">1</div><div class="phase-body"><h4 style="color:var(--blue)">SESSION_INIT</h4><ul><li>PUT user-preference (language=ar)</li><li>GET orbits/by-path → orbit_id, wsUrl</li><li>GET orbit-configurator/frontend → AI config</li><li>GET scopes/config/{orbit_id} → tools, prompt</li><li>GET skills → agent guidelines</li><li>GET glossary → bilingual terms</li></ul></div></div>
+      <div class="phase"><div class="phase-dot" style="background:var(--cyan-bg);border-color:var(--cyan);color:var(--cyan)">2</div><div class="phase-body"><h4 style="color:var(--cyan)">WEBSOCKET_CONNECT</h4><ul><li>Connect to Orbit-1 backend WebSocket</li><li>Authenticate with session token</li><li>Register event listeners</li></ul></div></div>
+      <div class="phase"><div class="phase-dot" style="background:var(--green-bg);border-color:var(--green);color:var(--green)">3</div><div class="phase-body"><h4 style="color:var(--green)">MESSAGE_REPLAY</h4><ul><li>Send user message via WebSocket</li><li>Wait for TERMINAL_EVENT or STEP_COMPLETE_EVENT</li><li>Capture agent response + system events</li><li>Repeat for each flow step (event-driven, no timeout)</li></ul></div></div>
+      <div class="phase"><div class="phase-dot" style="background:var(--amber-bg);border-color:var(--amber);color:var(--amber)">4</div><div class="phase-body"><h4 style="color:var(--amber)">REST_FETCH</h4><ul><li>Retrieve authoritative agent messages from store</li><li>Collect generated artifacts</li><li>Build complete conversation transcript</li></ul></div></div>
+      <div class="phase"><div class="phase-dot" style="background:var(--purple-bg);border-color:var(--purple);color:var(--purple)">5</div><div class="phase-body"><h4 style="color:var(--purple)">VALIDATION (19 Categories × 10 Layers)</h4><ul><li>Semantic analysis &amp; hallucination detection</li><li>Procurement contradiction checks</li><li>Glossary + Arabic tone validation</li><li>Document structure validation</li><li>Governance policy enforcement</li><li>Score computation (8 weighted components)</li></ul></div></div>
+      <div class="phase"><div class="phase-dot" style="background:var(--blue-bg);border-color:var(--blue);color:var(--blue)">6</div><div class="phase-body"><h4 style="color:var(--blue)">REPORTING + TEARDOWN</h4><ul><li>Executive summary + score cards</li><li>Format output (HTML/JSON)</li><li>Close WebSocket, persist results</li></ul></div></div>
+    </div>
+  </div>
+  <div class="path-content" id="path-b">
+    <p style="color:var(--text2);font-size:0.85rem;margin-bottom:1.5rem">AI Flows Tab → Preview → Run → <code>flow-runner.cy.js</code> → Phase 0 sends to real API → Validates REAL Ghaia Orbit-1 RFP Agent</p>
+    <div class="pipeline">
+      <div class="phase"><div class="phase-dot" style="background:var(--blue-bg);border-color:var(--blue);color:var(--blue)">C</div><div class="phase-body"><h4 style="color:var(--blue)">CLIENT — Preview &amp; Store</h4><ul><li>User selects persona + procurement type + path</li><li>"Preview Flow" → POST /api/ai/preview → AI generates plan</li><li>lastPreviewedFlow = response (stored on client)</li><li>"Run" → POST /api/ai/run with { generated_flow: lastPreviewedFlow }</li><li>Server reuses exact flow — no regeneration</li><li>Config change resets stored plan</li></ul></div></div>
+      <div class="phase"><div class="phase-dot" style="background:#022c22;border-color:#34d399;color:#34d399">0</div><div class="phase-body" style="border-color:#34d399"><h4 style="color:#34d399">PHASE 0 — Live API Replay ⭐ Foundation</h4><ul><li>Convert generated steps → deterministic replay format</li><li><strong>replayDeterministicFlow()</strong> sends user messages to REAL Orbit-1 API</li><li>Collect REAL agent responses via WebSocket</li><li>Detect DOCUMENT_GENERATED / ARTIFACT_CREATED events</li><li>Validate Arabic in each real response</li><li>Overlay real responses onto flowDef.conversation</li><li>Tag each message: <code>source = 'orbit1_live'</code></li></ul></div></div>
+      <div class="phase"><div class="phase-dot" style="background:var(--green-bg);border-color:var(--green);color:var(--green)">1</div><div class="phase-body"><h4 style="color:var(--green)">PHASE 1 — Stage 0 Validation</h4><ul><li>runStage0Flow(type, { steps: <strong>REAL</strong> conversation })</li><li>Classification against REAL agent messages</li><li>Flow routing — real state sequence</li><li>Terminology — real agent used correct terms</li><li>Document check — real events</li></ul></div></div>
+      <div class="phase"><div class="phase-dot" style="background:var(--purple-bg);border-color:var(--purple);color:var(--purple)">2</div><div class="phase-body"><h4 style="color:var(--purple)">PHASE 2 — AI Classification</h4><ul><li>Keyword analysis on real agent text</li><li>AI response validity check</li><li>Downstream flow consistency</li></ul></div></div>
+      <div class="phase"><div class="phase-dot" style="background:var(--amber-bg);border-color:var(--amber);color:var(--amber)">3</div><div class="phase-body"><h4 style="color:var(--amber)">PHASE 3 — Category Terminology</h4><ul><li>Required terms coverage on real text</li><li>Forbidden terms check</li><li>Coverage percentage against real responses</li></ul></div></div>
+      <div class="phase"><div class="phase-dot" style="background:var(--blue-bg);border-color:var(--blue);color:var(--blue)">4</div><div class="phase-body"><h4 style="color:var(--blue)">PHASE 4 — Report Generation</h4><ul><li>data_source: <code>'orbit1_live'</code> | <code>'offline_simulation'</code></li><li>Each agent message tagged with source</li><li>generated_flow_plan kept as reference (marked as predicted)</li><li>live_replay object: thread_id, real responses, doc status</li><li>HTML + JSON report with full source attribution</li></ul></div></div>
+    </div>
+  </div>
+</div>
+<div class="section">
+  <h2 class="section-title"><span class="icon" style="background:var(--red-bg);color:var(--red)">!</span> Data Source Principle (Critical)</h2>
+  <div class="ds-banner">
+    <div class="ds-card" style="background:var(--blue-bg);border-color:var(--blue)"><span class="ds-icon">🔵</span><div><h5 style="color:var(--blue)">✅ CORRECT — Real Orbit-1 Agent</h5><p style="color:var(--text2)">Messages sent via WebSocket to production API. Agent responses captured live. Tagged <code style="color:var(--blue)">orbit1_live</code>. Dashboard shows "Real Agent Responses."</p></div></div>
+    <div class="ds-card" style="background:var(--amber-bg);border-color:var(--amber)"><span class="ds-icon">⚠️</span><div><h5 style="color:var(--amber)">FALLBACK — Offline Simulation</h5><p style="color:var(--text2)">No API connection. Hardcoded/generated agent messages (not real). Tagged <code style="color:var(--amber)">self_generated</code>. Dashboard shows "Offline Simulation — Not Real Agent."</p></div></div>
+    <div class="ds-card" style="background:var(--red-bg);border-color:var(--red)"><span class="ds-icon">❌</span><div><h5 style="color:var(--red)">NEVER — Self-Validation</h5><p style="color:var(--text2)">The flow generator predicts what the agent MIGHT say. These are PLANS, not test data. Scoring self-generated messages is meaningless.</p></div></div>
+  </div>
+</div>
+<div class="section">
+  <h2 class="section-title"><span class="icon" style="background:var(--green-bg);color:var(--green)">✦</span> Design Principles</h2>
+  <div class="principle-grid">
+    <div class="principle" style="border-left-color: var(--green)"><h4><span style="color:var(--green)">1.</span> Validate the Real Agent</h4><p>Test the Ghaia Orbit-1 RFP Agent — not predictions.</p><ul><li>Phase 0 sends real messages to Orbit-1 via WebSocket</li><li>Real responses tagged <code>orbit1_live</code></li><li>Self-generated marked with ⚠️ banner</li></ul></div>
+    <div class="principle" style="border-left-color: var(--red)"><h4><span style="color:var(--red)">2.</span> Governance-First</h4><p>Every execution passes through governance gates. No validation can override a deterministic governance failure.</p></div>
+    <div class="principle" style="border-left-color: var(--blue)"><h4><span style="color:var(--blue)">3.</span> Strict Separation</h4><ul><li>Shared: contracts only — zero business logic</li><li>Workflow: domain state — no I/O</li><li>Governance: policy — no transport</li><li>Runtime: orchestration — delegates all logic</li></ul></div>
+    <div class="principle" style="border-left-color: var(--cyan)"><h4><span style="color:var(--cyan)">4.</span> Preview/Run Integrity</h4><p>AI Flows uses store-and-reuse: preview → store on client → run sends exact plan → no regeneration. Config change resets.</p></div>
+    <div class="principle" style="border-left-color: var(--purple)"><h4><span style="color:var(--purple)">5.</span> Event-Driven Communication</h4><p>Modules communicate through EventBus — never direct imports. Enables loose coupling, easy testing, runtime observability.</p></div>
+    <div class="principle" style="border-left-color: var(--amber)"><h4><span style="color:var(--amber)">6.</span> Deterministic Override Guard</h4><p>AI validator cannot upgrade scores downgraded by deterministic checks. <code>deterministicOverrideGuard: true</code> ensures governance failures are never masked.</p></div>
+  </div>
+</div>
+<div class="section">
+  <h2 class="section-title"><span class="icon" style="background:var(--amber-bg);color:var(--amber)">◉</span> Scoring Model</h2>
+  <div class="score-grid">
+    <div class="score-card" style="border-top:3px solid var(--green)">
+      <h4>🔵 Live API Mode <span style="font-weight:400;color:var(--text3);font-size:0.8rem">— 8 Components</span></h4>
+      <div class="score-row"><span class="score-label">Live API Replay</span><span class="score-weight" style="background:var(--green-bg);color:var(--green)">25%</span></div>
+      <div class="score-row"><span class="score-label">Document Generation</span><span class="score-weight" style="background:var(--green-bg);color:var(--green)">15%</span></div>
+      <div class="score-row"><span class="score-label">Procurement Classification</span><span class="score-weight" style="background:var(--blue-bg);color:var(--blue)">15%</span></div>
+      <div class="score-row"><span class="score-label">AI Classification Pipeline</span><span class="score-weight" style="background:var(--blue-bg);color:var(--blue)">10%</span></div>
+      <div class="score-row"><span class="score-label">Stage 0 Routing</span><span class="score-weight" style="background:var(--purple-bg);color:var(--purple)">10%</span></div>
+      <div class="score-row"><span class="score-label">Stage 0 Terminology</span><span class="score-weight" style="background:var(--purple-bg);color:var(--purple)">10%</span></div>
+      <div class="score-row"><span class="score-label">Category Terminology</span><span class="score-weight" style="background:var(--cyan-bg);color:var(--cyan)">10%</span></div>
+      <div class="score-row"><span class="score-label">Stage 0 Documents</span><span class="score-weight" style="background:var(--cyan-bg);color:var(--cyan)">5%</span></div>
+    </div>
+    <div class="score-card" style="border-top:3px solid var(--amber)">
+      <h4>⚠️ Offline Mode <span style="font-weight:400;color:var(--text3);font-size:0.8rem">— 6 Components</span></h4>
+      <div class="score-row"><span class="score-label">Procurement Classification</span><span class="score-weight" style="background:var(--amber-bg);color:var(--amber)">20%</span></div>
+      <div class="score-row"><span class="score-label">AI Classification</span><span class="score-weight" style="background:var(--amber-bg);color:var(--amber)">20%</span></div>
+      <div class="score-row"><span class="score-label">Stage 0 Terminology</span><span class="score-weight" style="background:var(--amber-bg);color:var(--amber)">20%</span></div>
+      <div class="score-row"><span class="score-label">Flow Routing</span><span class="score-weight" style="background:var(--amber-bg);color:var(--amber)">15%</span></div>
+      <div class="score-row"><span class="score-label">Category Terminology</span><span class="score-weight" style="background:var(--amber-bg);color:var(--amber)">15%</span></div>
+      <div class="score-row"><span class="score-label">Stage 0 Documents</span><span class="score-weight" style="background:var(--amber-bg);color:var(--amber)">10%</span></div>
+      <div style="margin-top:0.75rem;padding:8px 12px;background:var(--amber-bg);border-radius:var(--radius-sm);font-size:0.78rem;color:var(--amber)">⚠️ Offline scores validate self-generated data — not real agent quality metrics.</div>
+    </div>
+  </div>
+  <p style="margin-top:1rem;font-size:0.85rem;color:var(--text2)"><strong>Pass Threshold:</strong> 85 &nbsp;|&nbsp; <strong>Warning Threshold:</strong> 70</p>
+</div>
+<div class="section">
+  <h2 class="section-title"><span class="icon" style="background:var(--blue-bg);color:var(--blue)">◐</span> Dashboard Indicators</h2>
+  <div class="ind-grid">
+    <div style="background:var(--bg3);font-weight:600;color:var(--text2);text-transform:uppercase;font-size:0.75rem;letter-spacing:0.5px">Icon</div>
+    <div style="background:var(--bg3);font-weight:600;color:var(--text2);text-transform:uppercase;font-size:0.75rem;letter-spacing:0.5px">Location</div>
+    <div style="background:var(--bg3);font-weight:600;color:var(--text2);text-transform:uppercase;font-size:0.75rem;letter-spacing:0.5px">Meaning</div>
+    <div class="ind-icon">🔵</div><div>Table row</div><div>Report validated against real Orbit-1 agent</div>
+    <div class="ind-icon">⚠️</div><div>Table row</div><div>Report validated against offline simulation</div>
+    <div class="ind-icon">📄</div><div>Table row</div><div>Document was generated during the run</div>
+    <div class="ind-icon" style="font-size:0.85rem">🔵 Banner</div><div>Overview tab</div><div style="color:var(--blue)">"Validated against: Ghaia Orbit-1 RFP Agent (Live API)"</div>
+    <div class="ind-icon" style="font-size:0.85rem">⚠️ Banner</div><div>Overview tab</div><div style="color:var(--amber)">"Validated against: Self-generated simulation (not real agent)"</div>
+    <div class="ind-icon"><code style="background:var(--blue-bg);color:var(--blue);padding:2px 6px;border-radius:4px;font-size:0.75rem">live API</code></div><div>Conversation bubble</div><div>Agent message from real Orbit-1 API</div>
+    <div class="ind-icon"><code style="background:var(--amber-bg);color:var(--amber);padding:2px 6px;border-radius:4px;font-size:0.75rem">simulated</code></div><div>Conversation bubble</div><div>Self-generated message (not real agent)</div>
+    <div class="ind-icon"><code style="background:var(--green-bg);color:var(--green);padding:2px 6px;border-radius:4px;font-size:0.75rem">agentic</code></div><div>User message</div><div>User message from agentic runtime</div>
+  </div>
+</div>
+<div class="section">
+  <h2 class="section-title"><span class="icon" style="background:var(--cyan-bg);color:var(--cyan)">⟡</span> API Endpoints</h2>
+  <table class="dep-table">
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code style="color:var(--green)">GET</code></td><td><code>/api/reports</code></td><td>Report list with data source metadata</td></tr>
+      <tr><td><code style="color:var(--green)">GET</code></td><td><code>/api/reports/:id</code></td><td>Full report JSON</td></tr>
+      <tr><td><code style="color:var(--amber)">POST</code></td><td><code>/api/run</code></td><td>Standard replay (Path A) — SSE stream</td></tr>
+      <tr><td><code style="color:var(--amber)">POST</code></td><td><code>/api/ai/preview</code></td><td>Generate flow plan (ts-node)</td></tr>
+      <tr><td><code style="color:var(--amber)">POST</code></td><td><code>/api/ai/run</code></td><td>Run flow — reuses previewed plan, no regen</td></tr>
+      <tr><td><code style="color:var(--green)">GET</code></td><td><code>/api/governance/reports</code></td><td>Governance report list</td></tr>
+      <tr><td><code style="color:var(--green)">GET</code></td><td><code>/api/health</code></td><td>Backend health check</td></tr>
+    </tbody>
+  </table>
+</div>
+</div>
+<div class="footer">
+  <strong>OrbitFlow QA Platform v4.1</strong> — Architecture Document<br>
+  Generated May 2026 &nbsp;|&nbsp; Enterprise Modular Architecture &nbsp;|&nbsp; Live API Validation
+</div>
+<script>
+function switchPath(id, btn) {
+  document.querySelectorAll('.path-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.path-content').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('path-' + id).classList.add('active');
+}
+</script>
+</body>
+</html>
